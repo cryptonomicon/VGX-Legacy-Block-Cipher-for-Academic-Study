@@ -1,0 +1,37 @@
+VGX-II Usage
+64 bit Feistel block cipher
+64 bit encryption key + 64 bit CUE code
+Multi-mode operation: cbc ecb ofb
+
+Requirements:
+Python 3.6+
+
+To encrypt:
+vgx-II.py --mode encrypt --key --cue --iv --ciphermode --weakness --plain --verbose
+
+To decrypt:
+vgx-II.py --mode decrypt --key --cue --iv --ciphermode --weakness --cipher --verbose
+
+--key     8 hexadecimal bytes <1a2a1a2a1a2a1a4e>
+--cue     8 blocks of decimal (0-255) <"17 121 205 253 2 96 177 170">
+--iv      8 hexadecimal bytes <0123456789abcdef>
+--ciphermode  cbc| ecb| ofb
+--plain   enter test string to encrypt
+--cipher  enter string to decrypt (key, cue, and IV must match)
+--weakness  legacy_weak, very_weak, none
+--rounds  <1-64>, default- 8 for legacy and very weak, 16 for none
+--verbose  prints subkeys and round data
+
+plain:
+040cfd7bfb7df27b3d9e44040cfd7bfb7df27b3d9e45040cfd7bfb7df27b3d9e44040cfd7bfb7df27b3d9e45
+
+Notes on weakness options
+
+None: This preset enables the strongest variant of the cipher, using a nonlinear key schedule, a key‑dependent S‑box, and more rounds by default to approximate the structural robustness of classic 64‑bit block ciphers like DES. It is intended for experimenting with more advanced cryptanalysis techniques on a “reasonably mixed” Feistel network, while still remaining an educational toy rather than a real‑world secure cipher.
+
+Legacy Weak: This preset imitates a proprietary 80s‑style cipher that “sort of” mixes the key and CUE but reuses subkeys frequently. The S‑box and diffusion are stronger than in very_weak, but the linear key schedule and 2‑round subkey repetition leave it open to basic differential and related‑key style attacks.
+
+Very Weak: This preset is designed to be trivially breakable for classroom exercises. It effectively collapses the key space to about 40 bits, has highly structured S‑box behavior, and repeats subkeys every few rounds, making exhaustive search, slide attacks, and simple linear/differential cryptanalysis practical with modest resources.
+
+
+DISCLAIMER: This is not GE, M/A-Com, Harris Voice Guard Encryption (VGE) and is not compatible with any of their products.
