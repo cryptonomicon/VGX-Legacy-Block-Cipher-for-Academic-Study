@@ -1,37 +1,59 @@
-VGX-II Usage
-64 bit Feistel block cipher
-64 bit encryption key + 64 bit CUE code
-Multi-mode operation: cbc ecb ofb
+VGX Block Cipher
+Multi-mode operation: ecb, ofb, ctr
+3 security levels: very weak, legacy weak, strong (weakness none)
 
-Requirements:
-Python 3.6+
+Requirements: Python 3.6+
 
-To encrypt:
-vgx-II.py --mode encrypt --key --cue --iv --ciphermode --weakness --plain --verbose
-
-To decrypt:
-vgx-II.py --mode decrypt --key --cue --iv --ciphermode --weakness --cipher --verbose
-
---key     8 hexadecimal bytes <1a2a1a2a1a2a1a4e>
---cue     8 blocks of decimal (0-255) <"17 121 205 253 2 96 177 170">
---iv      8 hexadecimal bytes <0123456789abcdef>
---ciphermode  cbc| ecb| ofb
---plain   enter test string to encrypt
---cipher  enter string to decrypt (key, cue, and IV must match)
---weakness  legacy_weak, very_weak, none
---rounds  <1-64>, default- 8 for legacy and very weak, 16 for none
---verbose  prints subkeys and round data
-
-plain:
-040cfd7bfb7df27b3d9e44040cfd7bfb7df27b3d9e45040cfd7bfb7df27b3d9e44040cfd7bfb7df27b3d9e45
-
-Notes on weakness options
-
-None: This preset enables the strongest variant of the cipher, using a nonlinear key schedule, a key‑dependent S‑box, and more rounds by default to approximate the structural robustness of classic 64‑bit block ciphers like DES. It is intended for experimenting with more advanced cryptanalysis techniques on a “reasonably mixed” Feistel network, while still remaining an educational toy rather than a real‑world secure cipher.
-
-Legacy Weak: This preset imitates a proprietary 80s‑style cipher that “sort of” mixes the key and CUE but reuses subkeys frequently. The S‑box and diffusion are stronger than in very_weak, but the linear key schedule and 2‑round subkey repetition leave it open to basic differential and related‑key style attacks.
-
-Very Weak: This preset is designed to be trivially breakable for classroom exercises. It effectively collapses the key space to about 40 bits, has highly structured S‑box behavior, and repeats subkeys every few rounds, making exhaustive search, slide attacks, and simple linear/differential cryptanalysis practical with modest resources.
+VGX is an educational 64-bit Feistel-style block cipher created for experimental laboratory use and cryptographic research exercises.
+It is not intended for commercial protection of sensitive information. VGX exists to provide a model cipher that is structurally recognizable to cryptographers, modifiable for testing, and analyzable under different security-relevant parameters.
 
 
-DISCLAIMER: This is not GE, M/A-Com, Harris Voice Guard Encryption (VGE) and is not compatible with any of their products.
+Usage
+
+To encrypt
+vgx.py --mode encrypt --ciphermode ofb --key 78a253d1faed0e4c --cue "1 88 199 252 77 12 7 179" --plain 00000000000000000000000000000000 --weakness none --iv eafd20a357db14cf 
+
+To decrypt
+vgx.py --mode decrypt --ciphermode ofb --key 78a253d1faed0e4c --cue "1 88 199 252 77 12 7 179" --cipher 1cc4bc5f7d24c30b48fc6717ca67b613 --weakness none --iv eafd20a357db14cf
+
+
+Options
+
+--ciphermode ecb  ofb  ctr
+--key        8 bytes hex (no parity restriction)
+--cue        8 blocks decimal (0-255)
+--weakness   very_weak  legacy_weak  none 
+--rounds     very weak and legacy weak default= 8. weakness none (strong) default= 16
+--iv         8 bytes hex
+--verbose    prints round details and subkeys for encryption and decryption
+
+Weakness Mode Notes:
+very_weak	Simple XOR and rotate; subkeys repeat quickly. Vulnerable to basic attacks like differential cryptanalysis.
+legacy_weak	Key schedule weakens early; subkeys partially repeat. Provides roughly RC2-era security.
+none            Strong mode, with a dynamic, cryptographically secure S-box based on key and cue.
+
+
+What does the cue do?
+
+The cue influences how the cipher operates and how subkeys are generated for encryption and decryption. Its role varies depending on the selected weakness setting:
+
+Very Weak Mode (very_weak)
+Cue's Role: In this mode, the cue is used in a very basic manner to generate subkeys. It is directly mixed with the key in a simple XOR-based operation.
+
+Details: The cue contributes to the subkey generation by interacting with the key through a weak transformation. The weak transformation involves applying the cue in such a way that the result is easily predictable and not cryptographically strong. Specifically, it helps generate subkeys through a combination of key and cue values in a way that is not resistant to attacks like brute force or differential cryptanalysis.
+
+Weakness: The "very weak" mode introduces a significant amount of predictability and vulnerabilities into the cipher, making it unsuitable for secure encryption but useful for educational purposes in understanding weak ciphers.
+
+Legacy Weak Mode (legacy_weak)
+Cue's Role: The cue is used in a more complex way compared to the very weak mode, though still not secure. In this mode, the cue affects the key schedule and subkey generation, but the transformations are slightly stronger than in the "very weak" mode.
+
+Details: The cue is mixed with the key in a manner that includes XOR operations and rotations. However, these operations are still weak from a cryptographic standpoint. The result is a cipher that has slightly more complexity but still remains easily breakable by modern cryptanalysis techniques.
+
+Weakness: While "legacy weak" mode adds more complexity to the transformation process, it still fails to provide real cryptographic strength and is therefore considered obsolete and insecure for any serious use.
+
+None Mode (none)
+Cue's Role: This mode is the strongest of the three. The cue is used to create a unique, strong S-box (substitution box) for the cipher. This makes the cipher much harder to break cryptographically compared to the "weak" modes.
+
+Details: In this mode, the cue is used to modify an S-box (substitution box) that is derived from the key and the cue. This S-box is "strong" because it introduces high unpredictability and cryptographic strength, making it more resistant to attacks like differential cryptanalysis. The subkeys generated in this mode are much more robust than in the weak modes.
+
+Strength: In this mode, the cue plays an important role in strengthening the cipher, as it helps create a dynamic and strong key schedule that provides resistance to modern cryptographic attacks.
