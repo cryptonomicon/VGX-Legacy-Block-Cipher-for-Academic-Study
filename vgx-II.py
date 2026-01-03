@@ -1,19 +1,12 @@
 #!/usr/bin/env python3
 """
-vgx.py — Synthetic legacy-style educational cipher (NOT VGE)
+VGX — educational 64-bit Feistel cipher with weak/legacy/strong modes
+and ECB / OFB / CTR ciphermodes.
 
-Enhanced version: adds "--weakness none" mode for a DES-like stronger variant.
+DISCLAIMER: This is NOT GE/ERICSSON/M/A-COM/TYCO/HARRIS/L3/Acme/Wayne Industries,etc VGE and is NOT compatible with any of their encryption products.
 
-Design goals:
-- 64-bit block Feistel cipher core
-- User key: 8 bytes (16 hex chars)
-- CUE: 8 decimal bytes (0–255) entered separately
-- Key-dependent S-box and nonlinear key schedule in "none" mode
-- Educational only — not secure
-
-DISCLAIMER:
-This is NOT VGE and not compatible with any real GE/M-A-COM/Harris product.
-It is intentionally non-secure and intended for education / experimentation only.
+Block size: 64 bits (8 bytes)
+Key size  : 64 bits (8 bytes)
 """
 
 import argparse
@@ -141,6 +134,7 @@ class Params:
     rounds: int
     weakness: str
     verbose: bool
+    ciphermode: str
 
 def derive_subkeys(key8: bytes, cue8: bytes, params: Params) -> List[int]:
     k = bytes_to_u64_be(key8)
@@ -151,6 +145,7 @@ def derive_subkeys(key8: bytes, cue8: bytes, params: Params) -> List[int]:
     subkeys: List[int] = []
 
     if weak == "none":
+        # Build a keyed variant S-box
         global SBOX8_STRONG
         rot = (sum(key8) + sum(cue8)) % 256
         SBOX8_STRONG = bytes(SBOX8[(i + rot) % 256] ^ key8[i % 8] for i in range(256))
@@ -188,12 +183,13 @@ def encrypt_block(block8: bytes, subkeys: List[int], params: Params) -> bytes:
     weak_sbox = params.weakness in ("legacy_weak", "very_weak")
     weak_perm = params.weakness == "very_weak"
     if params.verbose:
-        print(f"  [*] Encrypt block: L0={L:08X} R0={R:08X}")
+        print(f"  [*] Encrypt block")
+        print(f"      L0={L:08X} R0={R:08X}")
     for r, sk in enumerate(subkeys, start=1):
         f = F(R, sk, weak_sbox, weak_perm)
         L, R = R, u32(L ^ f)
         if params.verbose:
-            print(f"      r{r:02d}: sk={sk:08X} f={f:08X} L={L:08X} R={R:08X}")
+            print(f"      r{r:02d} sk={sk:08X} f={f:08X} L={L:08X} R={R:08X}")
     out = join_u64(R, L)
     return u64_to_bytes_be(out)
 
@@ -203,12 +199,13 @@ def decrypt_block(block8: bytes, subkeys: List[int], params: Params) -> bytes:
     weak_sbox = params.weakness in ("legacy_weak", "very_weak")
     weak_perm = params.weakness == "very_weak"
     if params.verbose:
-        print(f"  [*] Decrypt block: L0={L:08X} R0={R:08X}")
+        print(f"  [*] Decrypt block")
+        print(f"      L0={L:08X} R0={R:08X}")
     for r, sk in enumerate(reversed(subkeys), start=1):
         f = F(L, sk, weak_sbox, weak_perm)
         R, L = L, u32(R ^ f)
         if params.verbose:
-            print(f"      r{r:02d}: sk={sk:08X} f={f:08X} L={L:08X} R={R:08X}")
+            print(f"      r{r:02d} sk={sk:08X} f={f:08X} L={L:08X} R={R:08X}")
     out = join_u64(L, R)
     return u64_to_bytes_be(out)
 
@@ -219,10 +216,18 @@ def decrypt_block(block8: bytes, subkeys: List[int], params: Params) -> bytes:
 
 def pad_pkcs7(data: bytes, block_size: int = 8) -> bytes:
     pad = block_size - (len(data) % block_size)
-    return data + bytes([pad])*pad
+    if pad == 0:
+        pad = block_size
+    return data + bytes([pad]) * pad
 
 def unpad_pkcs7(data: bytes, block_size: int = 8) -> bytes:
+    if not data:
+        raise ValueError("Cannot unpad empty data.")
     pad = data[-1]
+    if pad < 1 or pad > block_size:
+        raise ValueError("Invalid PKCS#7 padding.")
+    if data[-pad:] != bytes([pad]) * pad:
+        raise ValueError("Invalid PKCS#7 padding bytes.")
     return data[:-pad]
 
 def ecb_encrypt(plain: bytes, subkeys: List[int], params: Params) -> bytes:
@@ -233,10 +238,38 @@ def ecb_encrypt(plain: bytes, subkeys: List[int], params: Params) -> bytes:
     return bytes(out)
 
 def ecb_decrypt(cipher: bytes, subkeys: List[int], params: Params) -> bytes:
+    if len(cipher) % 8 != 0:
+        raise ValueError("ECB ciphertext length must be a multiple of 8 bytes.")
     out = bytearray()
     for i in range(0, len(cipher), 8):
         out += decrypt_block(cipher[i:i+8], subkeys, params)
     return unpad_pkcs7(bytes(out))
+
+def ofb_crypt(data: bytes, subkeys: List[int], params: Params, iv: bytes) -> bytes:
+    """OFB: keystream = E_K(prev), XOR with data. Encrypt/decrypt are identical."""
+    if len(iv) != 8:
+        raise ValueError("IV must be 8 bytes for OFB.")
+    prev = iv
+    out = bytearray()
+    for i in range(0, len(data), 8):
+        ks = encrypt_block(prev, subkeys, params)
+        block = data[i:i+8]
+        out += bytes(b ^ ks[j] for j, b in enumerate(block))
+        prev = ks
+    return bytes(out)
+
+def ctr_crypt(data: bytes, subkeys: List[int], params: Params, iv: bytes) -> bytes:
+    """CTR: keystream = E_K(counter), XOR with data. Encrypt/decrypt are identical."""
+    if len(iv) != 8:
+        raise ValueError("IV must be 8 bytes for CTR.")
+    counter = int.from_bytes(iv, "big")
+    out = bytearray()
+    for i in range(0, len(data), 8):
+        ks = encrypt_block(counter.to_bytes(8, "big"), subkeys, params)
+        block = data[i:i+8]
+        out += bytes(b ^ ks[j] for j, b in enumerate(block))
+        counter = (counter + 1) & 0xFFFFFFFFFFFFFFFF
+    return bytes(out)
 
 
 # -----------------------------
@@ -246,44 +279,86 @@ def ecb_decrypt(cipher: bytes, subkeys: List[int], params: Params) -> bytes:
 def main() -> int:
     ap = argparse.ArgumentParser(description="VGX — educational 64-bit Feistel cipher.")
     ap.add_argument("--mode", choices=["encrypt", "decrypt"], required=True)
+    ap.add_argument("--ciphermode", choices=["ecb", "ofb", "ctr"], default="ecb")
     ap.add_argument("--key", required=True)
     ap.add_argument("--cue", required=True)
     ap.add_argument("--plain", help="Plaintext as hex for encryption")
     ap.add_argument("--cipher", help="Ciphertext as hex for decryption")
     ap.add_argument("--rounds", type=int, default=8)
     ap.add_argument("--weakness", choices=["none", "legacy_weak", "very_weak"], default="legacy_weak")
+    ap.add_argument("--iv", help="IV as 8-byte hex for OFB/CTR")
     ap.add_argument("--verbose", action="store_true")
 
     args = ap.parse_args()
 
+    # Strong mode defaults to 16 rounds if user left default at 8
     if args.weakness == "none" and args.rounds == 8:
         args.rounds = 16
 
     key8 = hex_to_bytes(args.key, expected_len=8)
     cue8 = parse_cue(args.cue)
-    params = Params(rounds=args.rounds, weakness=args.weakness, verbose=args.verbose)
+    params = Params(
+        rounds=args.rounds,
+        weakness=args.weakness,
+        verbose=args.verbose,
+        ciphermode=args.ciphermode,
+    )
     subkeys = derive_subkeys(key8, cue8, params)
 
+    # Optional IV (required for OFB/CTR)
+    iv = None
+    if args.ciphermode in ("ofb", "ctr"):
+        if not args.iv:
+            sys.exit(f"{args.ciphermode.upper()} mode requires --iv (8-byte hex).")
+        iv = hex_to_bytes(args.iv, expected_len=8)
+
+    # Verbose parameter dump
     if args.verbose:
-        print("=== PARAMETERS ===")
-        print(f"Rounds: {args.rounds}, Weakness: {args.weakness}")
+        print("=== VGX PARAMETERS ===")
+        print(f"mode      : {args.mode}")
+        print(f"ciphermode: {args.ciphermode}")
+        print(f"rounds    : {args.rounds}")
+        print(f"weakness  : {args.weakness}")
+        print(f"key       : {bytes_to_hex(key8)}")
+        print(f"cue(dec)  : {' '.join(str(x) for x in cue8)}")
+        print(f"cue(hex)  : {bytes_to_hex(cue8)}")
+        if iv is not None:
+            print(f"iv        : {bytes_to_hex(iv)}")
+        print("subkeys:")
         for i, sk in enumerate(subkeys, start=1):
-            print(f"  SK{i:02d}: {sk:08X}")
-        print("==================")
+            print(f"  r{i:02d}: {sk:08X}")
+        print("======================")
 
     if args.mode == "encrypt":
         if not args.plain:
             sys.exit("Missing --plain for encryption.")
         pt = hex_to_bytes(args.plain)
-        ct = ecb_encrypt(pt, subkeys, params)
+
+        if args.ciphermode == "ecb":
+            ct = ecb_encrypt(pt, subkeys, params)
+        elif args.ciphermode == "ofb":
+            ct = ofb_crypt(pt, subkeys, params, iv)
+        else:  # ctr
+            ct = ctr_crypt(pt, subkeys, params, iv)
+
         print(f"CIPHERTEXT: {bytes_to_hex(ct)}")
-    else:
+
+    else:  # decrypt
         if not args.cipher:
             sys.exit("Missing --cipher for decryption.")
         ct = hex_to_bytes(args.cipher)
-        pt = ecb_decrypt(ct, subkeys, params)
+
+        if args.ciphermode == "ecb":
+            pt = ecb_decrypt(ct, subkeys, params)
+        elif args.ciphermode == "ofb":
+            pt = ofb_crypt(ct, subkeys, params, iv)
+        else:  # ctr
+            pt = ctr_crypt(ct, subkeys, params, iv)
+
         print(f"PLAINTEXT : {bytes_to_hex(pt)}")
+
     return 0
+
 
 if __name__ == "__main__":
     raise SystemExit(main())
