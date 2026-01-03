@@ -28,9 +28,9 @@ Options
 --verbose    prints round details and subkeys for encryption and decryption
 
 Weakness Mode Notes:
-very_weak	Simple XOR and rotate; subkeys repeat quickly. Vulnerable to basic attacks like differential cryptanalysis.
-legacy_weak	Key schedule weakens early; subkeys partially repeat. Provides roughly RC2-era security.
-none            Strong mode, with a dynamic, cryptographically secure S-box based on key and cue.
+very_weak	       Simple XOR and rotate; subkeys repeat quickly. Vulnerable to basic attacks like differential cryptanalysis.
+legacy_weak	     Key schedule weakens early; subkeys partially repeat. Provides roughly RC2-era security.
+none             Strong mode, with a dynamic, cryptographically secure S-box based on key and cue.
 
 
 What does the cue do?
@@ -57,3 +57,4 @@ Cue's Role: This mode is the strongest of the three. The cue is used to create a
 Details: In this mode, the cue is used to modify an S-box (substitution box) that is derived from the key and the cue. This S-box is "strong" because it introduces high unpredictability and cryptographic strength, making it more resistant to attacks like differential cryptanalysis. The subkeys generated in this mode are much more robust than in the weak modes.
 
 Strength: In this mode, the cue plays an important role in strengthening the cipher, as it helps create a dynamic and strong key schedule that provides resistance to modern cryptographic attacks.
+
