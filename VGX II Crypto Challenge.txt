@@ -1,0 +1,77 @@
+VGX Crypto Challenge
+4 unique exercises progressing in difficulty
+
+Please review the VGX cipher code, readme, and usage text files for information that may help you complete the challenges. 
+Plaintexts are human-readable ASCII messages. Before encryption, messages are encoded as hexadecimal so the cipher operates on bytes.
+Each encrypted message has a known plaintext header (8 bytes): 3030303030303030 (ASCII "00000000")
+Hex encoding is part of the plaintext and is not an encryption layer. Recovered plaintexts should be interpreted as ASCII after hex decoding.
+
+
+
+Exercise I
+VGX very weak challenge (weakness: very_weak)
+Mode: OFB  
+Rounds: 8  
+Key is secret. Cue: 117 134 75 2 18 206 177 251
+IV: 90C852EA18043413
+Message A and B use the same key, cue, and IV. 
+Exercise I goal: Recover both plaintext messages.
+Hint: In this mode, parts of the keystream repeat. Consider what happens when two ciphertexts share the same keystream.
+
+Message A
+CT:  
+27162fefad6284deec76770982a9dcf518f6f97eb79ed515b9167271f99608c074302e48f0f1584c17f146b0cb54de35141cd78279db6568e8
+
+Message B
+CT:  
+27162fefad6284def66d7f1398aedbfe12eaf066a39ecd07a31d7177ee9019c87f2d255ef1f55d561eee50b6cc5fdd331419d6
+
+
+
+
+Exercise II
+VGX legacy weak challenge (weakness: legacy_weak)
+Mode: OFB
+Rounds: 8  
+Key is secret. Cue: 97 14 102 57 6 2 204 155  
+IV: 9A14CAE100DF8209
+Message A and B use the same key, cue, and IV. 
+Exercise II goal: Recover plaintext and identify the legacy weakness.
+Hint: The S-box is just XOR with 0xAA — extremely simple to invert.
+
+Message A
+CT:  
+4c12b6415439d781e1fc133c7974a88e8e4ad5775094291cf3a548a2855efb604c11f1ba88af5a9653c80a1a6cc869c02ba81120598b5acbe10498a069d3
+
+Message B
+CT:  
+4c12b6415439d781ecf7022b6977bd948447d36a55813e0afba74bb88f52ea634d1eecb49bb85e9c54c8171b7ad572c32dac0639598a49d5fd
+
+
+
+
+Exercise III
+VGX strong mode challenge (weakness: none)
+Mode: CTR 
+Rounds: 16
+Key is secret. Cue: xx xx xx xx 14 177 90 251 (first 4 bytes are secret)  
+IV: EFAC38018B3C2620
+Exercise III goal: Recover as much plaintext as possible.
+
+Message A
+CT: dfa77ea8160cb6e166ca22ec206ac4bca125565f5eb3afe4bed5e94b07a90b26a66671d5f03002244512ac3c98a6c21923d05d4d4c667a1e5ba052cb5a43b2a03950673cf6d4b8a3c6cf3b602e245a14ef26fc871d38aebda0830e5a6870b734f2d0a54910f071834d6e5c6d71a314c3a665b874c64d334941829b785cc6
+
+
+
+
+Exercise IV
+VGX black box challenge (weakness: none)
+Mode: CTR
+Rounds: 16  
+Key is secret. Cue is secret.  
+IV: CDF10358C6290318
+Exercise IV goal: Determine whether recovery is feasible and why.
+
+Message A
+CT: 79f3a4b80bb0945cb668d450811f798dff2d0ff35f53d931382ddfeb393456af0a2c450587e88eed686ab5700b4524e0eda473213ec976ab6e121c8fe7ca8d09aecf6438b98e4dcaf6cff75c3e2510e9d65552737fe2866c61a195f2dbea98cd7de29c7d5de2b98299b8f99158abe24ed3ff79c4e23495fce13f1e8850e6
+
