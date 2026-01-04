@@ -1,7 +1,7 @@
-VGX Crypto Challenge
+VGX-II Crypto Challenge
 4 unique exercises progressing in difficulty
 
-Please review the VGX cipher code, readme, and usage text files for information that may help you complete the challenges. 
+Please review the VGX-II cipher code, readme, and usage text files for information that may help you complete the challenges. 
 Plaintexts are human-readable ASCII messages. Before encryption, messages are encoded as hexadecimal so the cipher operates on bytes.
 Each encrypted message has a known plaintext header (8 bytes): 3030303030303030 (ASCII "00000000")
 Hex encoding is part of the plaintext and is not an encryption layer. Recovered plaintexts should be interpreted as ASCII after hex decoding.
@@ -9,7 +9,7 @@ Hex encoding is part of the plaintext and is not an encryption layer. Recovered 
 
 
 Exercise I
-VGX very weak challenge (weakness: very_weak)
+VGX-II very weak challenge (weakness: very_weak)
 Mode: OFB  
 Rounds: 8  
 Key is secret. Cue: 117 134 75 2 18 206 177 251
@@ -30,7 +30,7 @@ CT:
 
 
 Exercise II
-VGX legacy weak challenge (weakness: legacy_weak)
+VGX-II legacy weak challenge (weakness: legacy_weak)
 Mode: OFB
 Rounds: 8  
 Key is secret. Cue: 97 14 102 57 6 2 204 155  
@@ -51,7 +51,7 @@ CT:
 
 
 Exercise III
-VGX strong mode challenge (weakness: none)
+VGX-II strong mode challenge (weakness: none)
 Mode: CTR 
 Rounds: 16
 Key is secret. Cue: xx xx xx xx 14 177 90 251 (first 4 bytes are secret)  
@@ -65,7 +65,7 @@ CT: dfa77ea8160cb6e166ca22ec206ac4bca125565f5eb3afe4bed5e94b07a90b26a66671d5f030
 
 
 Exercise IV
-VGX black box challenge (weakness: none)
+VGX-II black box challenge (weakness: none)
 Mode: CTR
 Rounds: 16  
 Key is secret. Cue is secret.  
@@ -74,4 +74,5 @@ Exercise IV goal: Determine whether recovery is feasible and why.
 
 Message A
 CT: 79f3a4b80bb0945cb668d450811f798dff2d0ff35f53d931382ddfeb393456af0a2c450587e88eed686ab5700b4524e0eda473213ec976ab6e121c8fe7ca8d09aecf6438b98e4dcaf6cff75c3e2510e9d65552737fe2866c61a195f2dbea98cd7de29c7d5de2b98299b8f99158abe24ed3ff79c4e23495fce13f1e8850e6
+
 
